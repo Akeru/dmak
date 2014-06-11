@@ -327,7 +327,11 @@
 		}
 
 		if (Dmak.options.stroke.animated.drawing) {
-			animateStroke(stroke, 1, cb);
+			if (window.ActiveXObject || "ActiveXObject" in window) {
+				animateStrokeIE(paper, stroke);
+			} else {
+				animateStroke(stroke, 1, cb);
+			}
 		}
 		else {
 			cb();
@@ -366,6 +370,34 @@
 		// Execute the callback once the animation is done
 		// and return the timeout id.
 		return setTimeout(callback, stroke.duration);
+	}
+
+	function animateStrokeIE(paper, stroke) {
+		var length = stroke.object.path.getTotalLength(),
+			currentPath;
+		stroke.object.path.hide();
+		$("path[fill*='none']").animate({
+			"to": 1
+		}, {
+			duration: stroke.duration,
+			complete: function () {
+				stroke.object.path.show();
+				if (currentPath !== undefined) {
+					currentPath.remove();
+				}
+			},
+			step: function (pos, fx) {
+				var offset = length * fx.pos,
+					subpath = stroke.object.path.getSubpath(0, offset);
+				if (currentPath !== undefined) {
+					currentPath.remove();
+				}
+				currentPath = paper.path(subpath).attr({
+					"stroke-width": 4,
+					stroke: Dmak.options.stroke.attr.active
+				});
+			}
+		});
 	}
 
 	/**
